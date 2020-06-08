@@ -31,25 +31,18 @@ import (
 	"github.com/alexwbaule/give-help/v2/generated/restapi"
 	"github.com/alexwbaule/give-help/v2/generated/restapi/operations"
 	runtimeApp "github.com/alexwbaule/give-help/v2/runtime"
-
-	app "github.com/alexwbaule/go-app"
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	"github.com/go-openapi/loads"
-	"github.com/go-openapi/runtime/flagext"
 	flags "github.com/jessevdk/go-flags"
-	"github.com/rs/cors"
 )
 
-func main() {
+var httpAdapter *httpadapter.HandlerAdapter
 
-	app, err := app.New("give-help-service")
-	cfg := app.Config()
+func init() {
 
-	cfg.SetDefault("service.Host", "127.0.0.1")
-	cfg.SetDefault("service.Port", "8081")
-	cfg.SetDefault("service.TLSWriteTimeout", "15m")
-	cfg.SetDefault("service.WriteTimeout", "15m")
-
-	rt, err := runtimeApp.NewRuntime(app)
+	rt, err := runtimeApp.NewRuntime()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -61,30 +54,6 @@ func main() {
 
 	api := operations.NewGiveHelpAPI(swaggerSpec)
 	server := restapi.NewServer(api)
-	defer server.Shutdown()
-	defer rt.CloseDatabase()
-
-	server.EnabledListeners = app.Config().GetStringSlice("service.EnabledListeners")
-	server.Host = app.Config().GetString("service.Host")
-	server.Port = app.Config().GetInt("service.Port")
-	server.ListenLimit = app.Config().GetInt("service.ListenLimit")
-	server.TLSHost = app.Config().GetString("service.TLSHost")
-	server.TLSPort = app.Config().GetInt("service.TLSPort")
-	server.TLSListenLimit = app.Config().GetInt("service.TLSListenLimit")
-
-	server.CleanupTimeout = app.Config().GetDuration("service.CleanupTimeout")
-	server.TLSKeepAlive = app.Config().GetDuration("service.TLSKeepAlive")
-	server.TLSReadTimeout = app.Config().GetDuration("service.TLSReadTimeout")
-	server.TLSWriteTimeout = app.Config().GetDuration("service.TLSWriteTimeout")
-	server.KeepAlive = app.Config().GetDuration("service.KeepAlive")
-	server.ReadTimeout = app.Config().GetDuration("service.ReadTimeout")
-	server.WriteTimeout = app.Config().GetDuration("service.WriteTimeout")
-	server.MaxHeaderSize = flagext.ByteSize(app.Config().GetSizeInBytes("service.MaxHeaderSize"))
-
-	server.SocketPath = flags.Filename(app.Config().GetString("service.SocketPath"))
-	server.TLSCertificate = flags.Filename(app.Config().GetString("service.TLSCertificate"))
-	server.TLSCertificateKey = flags.Filename(app.Config().GetString("service.TLSCertificateKey"))
-	server.TLSCACertificate = flags.Filename(app.Config().GetString("service.TLSCACertificate"))
 
 	parser := flags.NewParser(server, flags.Default)
 	parser.ShortDescription = "give-help-service"
@@ -145,19 +114,17 @@ func main() {
 	api.TermsGetTermsHandler = apihandler.TermsGetTermsHandler(rt)
 	api.TermsGetUserAcceptedHandler = apihandler.TermsGetUserAcceptedHandler(rt)
 
-	c := cors.New(cors.Options{
-		Debug:              true,
-		AllowedHeaders:     []string{"*"},
-		AllowedOrigins:     []string{"*"},
-		AllowedMethods:     []string{"POST", "GET", "PUT", "OPTIONS", "DELETE", "PATCH"},
-		MaxAge:             1000,
-		OptionsPassthrough: false,
-	})
+	server.ConfigureAPI()
 
-	handler := c.Handler(api.Serve(nil))
-	server.SetHandler(handler)
+	httpAdapter = httpadapter.New(server.GetHandler())
 
-	if err := server.Serve(); err != nil {
-		log.Fatal(err.Error())
-	}
+}
+
+// Handler handles API requests
+func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	return httpAdapter.Proxy(req)
+}
+
+func main() {
+	lambda.Start(Handler)
 }

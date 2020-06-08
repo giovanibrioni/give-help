@@ -1,25 +1,25 @@
 package runtime
 
 import (
+	"os"
+
 	firebase "firebase.google.com/go"
 	"github.com/alexwbaule/give-help/v2/internal/common"
 	"github.com/alexwbaule/give-help/v2/internal/fireadmin"
 	"github.com/alexwbaule/give-help/v2/internal/storage/connection"
-	app "github.com/alexwbaule/go-app"
 )
 
 // NewRuntime creates a new application level runtime that encapsulates the shared services for this application
-func NewRuntime(app app.Application) (*Runtime, error) {
+func NewRuntime() (*Runtime, error) {
 
 	c := connection.New(&common.DbConfig{
-		DBName: app.Config().GetString("database.DBName"),
-		Host:   app.Config().GetString("database.Host"),
-		Pass:   app.Config().GetString("database.Pass"),
-		User:   app.Config().GetString("database.User"),
+		DBName: os.Getenv("DATABASE_DBNAME"),
+		Host:   os.Getenv("DATABASE_HOST"),
+		Pass:   os.Getenv("DATABASE_PASS"),
+		User:   os.Getenv("DATABASE_USER"),
 	})
 
 	rt := &Runtime{
-		app:      app,
 		fbase:    fireadmin.InitializeAppWithServiceAccount(),
 		database: c,
 	}
@@ -29,7 +29,6 @@ func NewRuntime(app app.Application) (*Runtime, error) {
 
 // Runtime encapsulates the shared services for this application
 type Runtime struct {
-	app      app.Application
 	fbase    *firebase.App
 	database *connection.Connection
 }

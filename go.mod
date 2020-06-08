@@ -7,6 +7,8 @@ require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/alexwbaule/go-app v1.0.3
 	github.com/alexwbaule/viper v1.5.1 // indirect
+	github.com/aws/aws-lambda-go v1.17.0 // indirect
+	github.com/awslabs/aws-lambda-go-api-proxy v0.6.0 // indirect
 	github.com/casualjim/middlewares v0.0.0-20180203195520-396189822216 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-openapi/errors v0.19.4
