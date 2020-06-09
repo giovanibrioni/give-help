@@ -1,0 +1,33 @@
+
+service: give-help
+
+frameworkVersion: '>=1.28.0 <2.0.0'
+
+provider:
+  name: aws
+  runtime: go1.x
+
+package:
+  artifact: bin/code.zip
+
+functions:
+  give-help:
+    name: give-help-lambda
+    memorySize: 128
+    tracing: Active
+    handler: give-help-server
+    vpc:
+      securityGroupIds:
+        - "*****YOUR DATABASE SECURITY GROUP ID*****"
+      subnetIds:
+        - "*****YOUR DATABASE SUBNET 1 ID*****"
+        - "*****YOUR DATABASE SUBNET 2 ID*****"
+    environment:
+      DATABASE_DBNAME: "*****YOUR DATABASE NAME*****"
+      DATABASE_HOST: "*****YOUR DATABASE HOST*****"
+      DATABASE_PASS: "*****YOUR DATABASE PASS*****"
+      DATABASE_USER: "*****YOUR DATABASE USER*****"
+    events:
+      - httpApi: '*'
+        cors: true
+
